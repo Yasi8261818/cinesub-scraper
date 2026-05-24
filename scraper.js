@@ -20,7 +20,7 @@ async function getCinesubData() {
             // ෆිල්ම් එකේ ලින්ක් එක
             let link = post.link;
             
-            // ෆิල්ම් පෝස්ටර් එක (Featured Image)
+            // ෆිල්ම් පෝස්ටර් එක (Featured Image)
             let image = "No Image";
             if (post._embedded && post._embedded['wp:featuredmedia'] && post._embedded['wp:featuredmedia']) {
                 image = post._embedded['wp:featuredmedia'].source_url;
@@ -39,7 +39,6 @@ async function getCinesubData() {
 
     } catch (error) {
         console.error("දත්ත ලබාගැනීමේදී දෝෂයක් සිදු විය:", error.message);
-        // හිස් ෆයිල් එකක් හෝ සෑදීම Actions Failure නොවීමට
         fs.writeFileSync('movies.json', JSON.stringify([]));
     }
 }
