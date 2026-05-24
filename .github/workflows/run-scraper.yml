@@ -21,13 +21,15 @@ jobs:
     - name: Install Dependencies
       run: npm install
 
+    - name: Install Chrome
+      run: npx puppeteer browsers install chrome
+
     - name: Run Scraper
       run: node scraper.js
 
-    - name: Commit and Push changes
-      run: |
-        git config --global user.name "GitHub Action"
-        git config --global user.email "action@github.com"
-        git add movies.json
-        git commit -m "Auto Update: Movies List" || exit 0
-        git push
+    # සීරපු දත්ත ලියාපදිංචි කර ඩවුන්ලෝඩ් කරගත හැකි ගොනුවක් (Artifact) ලෙස සුරැකීම
+    - name: Upload Movies Data File
+      uses: actions/upload-artifact@v4
+      with:
+        name: cinesub-movies-data
+        path: movies.json
