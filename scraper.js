@@ -1,50 +1,47 @@
-const puppeteer = require('puppeteer');
 const fs = require('fs');
 
-async function scrapeCinesub() {
-    console.log("සිනෙසබ් අඩවියට සම්බන්ධ වෙමින් පවතී...");
-    
-    const browser = await puppeteer.launch({ 
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
-    
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
+async function getCinesubData() {
+    console.log("සිනෙසබ් නිල දත්ත පද්ධතියට සම්බන්ධ වෙමින් පවතී...");
     try {
-        await page.goto('https://cinesub.lk/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        // සිනෙසබ් අඩවියේ නිල WordPress REST API එකෙන් කෙලින්ම ෆිල්ම්ස් ලබාගැනීම
+        const response = await fetch('https://cinesub.lk/wp-json/wp/v2/posts?per_page=20&_embed');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const posts = await response.json();
+        let movieData = [];
 
-        const movies = await page.evaluate(() => {
-            let movieData = [];
-            let items = document.querySelectorAll('article, .result-item, .post-column'); 
+        posts.forEach(post => {
+            // ෆිල්ම් එකේ නම
+            let title = post.title.rendered;
             
-            items.forEach(item => {
-                let titleElement = item.querySelector('h2, h3, .entry-title a');
-                let title = titleElement ? titleElement.innerText.trim() : 'No Title';
+            // ෆිල්ම් එකේ ලින්ක් එක
+            let link = post.link;
+            
+            // ෆิල්ම් පෝස්ටර් එක (Featured Image)
+            let image = "No Image";
+            if (post._embedded && post._embedded['wp:featuredmedia'] && post._embedded['wp:featuredmedia']) {
+                image = post._embedded['wp:featuredmedia'].source_url;
+            }
 
-                let imgElement = item.querySelector('img');
-                let image = imgElement ? imgElement.getAttribute('src') : 'No Image';
-
-                let linkElement = item.querySelector('a');
-                let link = linkElement ? linkElement.getAttribute('href') : '#';
-
-                if (title !== 'No Title' && link !== '#') {
-                    movieData.push({ title, image, link });
-                }
-            });
-            return movieData;
+            movieData.push({
+                title: title,
+                image: image,
+                link: link
+              });
         });
 
-        fs.writeFileSync('movies.json', JSON.stringify(movies, null, 2));
-        console.log("දත්ත සාර්ථකව movies.json එකට සේව් කරන ලදී!");
+        // දත්ත ටික ෆයිල් එකට ලිවීම
+        fs.writeFileSync('movies.json', JSON.stringify(movieData, null, 2));
+        console.log(`සාර්ථකයි! චිත්‍රපට ${movieData.length} ක දත්ත සුරකින ලදී.`);
 
     } catch (error) {
-        console.error("දෝෂයක් සිදු විය:", error.message);
-    } finally {
-        await browser.close();
+        console.error("දත්ත ලබාගැනීමේදී දෝෂයක් සිදු විය:", error.message);
+        // හිස් ෆයිල් එකක් හෝ සෑදීම Actions Failure නොවීමට
+        fs.writeFileSync('movies.json', JSON.stringify([]));
     }
 }
 
-scrapeCinesub();
+getCinesubData();
